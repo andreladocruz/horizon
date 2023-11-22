@@ -415,6 +415,12 @@ class RedisJobRepository implements JobRepository
      */
     public function remember($connection, $queue, JobPayload $payload)
     {
+        if (($this->monitoredJobExpires === 0) {
+            $this->connection()->del($payload->id());
+
+            return;
+        }
+
         $this->connection()->pipeline(function ($pipe) use ($connection, $queue, $payload) {
             $this->storeJobReference($pipe, 'monitored_jobs', $payload);
 
@@ -471,6 +477,12 @@ class RedisJobRepository implements JobRepository
     {
         if ($payload->isRetry()) {
             $this->updateRetryInformationOnParent($payload, $failed);
+        }
+
+        if (($this->completedJobExpires === 0) {
+            $this->connection()->del($payload->id());
+
+            return;
         }
 
         $this->connection()->pipeline(function ($pipe) use ($payload, $silenced) {
@@ -636,6 +648,12 @@ class RedisJobRepository implements JobRepository
      */
     public function failed($exception, $connection, $queue, JobPayload $payload)
     {
+        if (($this->failedJobExpires === 0) {
+            $this->connection()->del($payload->id());
+
+            return;
+        }
+
         $this->connection()->pipeline(function ($pipe) use ($exception, $connection, $queue, $payload) {
             $this->storeJobReference($pipe, 'failed_jobs', $payload);
             $this->storeJobReference($pipe, 'recent_failed_jobs', $payload);
